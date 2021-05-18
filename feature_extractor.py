@@ -73,12 +73,12 @@ class PointNetfeat(nn.Module):
         x = F.relu(self.bn1(self.conv1(x)))
 
         if self.feature_transform:
-          trans_feat = self.fstn(x)
-          x = x.transpose(2,1)
-          x = torch.bmm(x, trans_feat)
-          x = x.transpose(2,1)
+            trans_feat = self.fstn(x)
+            x = x.transpose(2, 1)
+            x = torch.bmm(x, trans_feat)
+            x = x.transpose(2, 1)
         else:
-          trans_feat = None
+            trans_feat = None
 
         pointfeat = x
         x = F.relu(self.bn2(self.conv2(x)))

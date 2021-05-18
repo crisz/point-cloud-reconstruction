@@ -25,8 +25,8 @@ def load_data(mode="train"):
         for path in data[:5]:
             fixed_path = Path(path.replace('shape_data', str(cfg.dataset_base)))
             pts = load_pts(fixed_path, 1024)
-            transposed_points = pts.transpose()
-            out.append(transposed_points)
+            # transposed_points = pts.transpose()
+            out.append(pts)
         
         out = np.stack(out, axis=0)
         print(out.shape)

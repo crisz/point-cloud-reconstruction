@@ -1,2 +1,5 @@
 numpy
 torch
+open3d
+tqdm
+pandas

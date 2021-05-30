@@ -8,3 +8,7 @@ test_split_info = dataset_base / "train_test_split" / "shuffled_test_file_list.j
 val_split_info = dataset_base / "train_test_split" / "shuffled_val_file_list.json"
 
 label_codes = dataset_base / "synsetoffset2category.txt"
+
+# Prediction
+y_pred_path = Path(".") / "prediction.np"
+

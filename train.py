@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 from autoencoder import PointNet_AutoEncoder
 import numpy as np
 import torch
@@ -5,6 +7,8 @@ import torch
 from chamfer_loss import PointLoss
 from feature_extractor import PointNetfeat
 from load_data import load_data
+import config as cfg
+# from utils.open3d_utils import show_point_cloud
 
 
 def get_input_tensor():
@@ -16,21 +20,33 @@ def get_input_tensor():
 
 def train():
     model = PointNet_AutoEncoder()
-    input_tensor = torch.from_numpy(np.array([[[1,0,0],[0,1,0],[0,0,1]]]).repeat(64, axis=0)).float()# get_input_tensor()
+    # input_tensor = torch.from_numpy(np.array([[[1,0,0],[0,1,0],[0,0,1]]]).repeat(64, axis=0)).float()
+    input_tensor = get_input_tensor()
+    print(input_tensor.shape)
+    # show_point_cloud(input_tensor[0])
+
     criterion = PointLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+    y_pred = None
 
-    for i in range(40):
-        y_pred = model.forward(input_tensor)
-        #print(y_pred)
-        err = criterion(y_pred, input_tensor)
-        print(err)
-        err.backward()
+    for i in range(20):
+        print("Epoch {}".format(i+1))
+        err = None
+        for batch in tqdm(torch.split(input_tensor, 32)):
+            y_pred = model.forward(batch)
+            #print(y_pred)
+            err = criterion(y_pred, batch)
+            # print(err)
+            err.backward()
 
-        with torch.no_grad():
-            optimizer.step()
+            with torch.no_grad():
+                optimizer.step()
+        print("Error is: ", err)
 
-    print(y_pred)
+    np.save(cfg.y_pred_path, y_pred)
+    # Decomment in case you have open3d installed
+    # out = y_pred[0].detach().numpy()
+    # show_point_cloud(out)
 
 
 if __name__ == '__main__':

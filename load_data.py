@@ -1,3 +1,5 @@
+from tqdm import tqdm
+
 import config as cfg
 import json
 from pathlib import Path
@@ -22,12 +24,14 @@ def load_data(mode="train"):
     with open(file) as f:
         data = json.load(f)
         out = []
-        for path in data[:5]:
+        for path in tqdm(data):
             fixed_path = Path(path.replace('shape_data', str(cfg.dataset_base)))
             pts = load_pts(fixed_path, 1024)
-            # transposed_points = pts.transpose()
-            out.append(pts)
-        
+            if pts.shape[0] == 1024:  # We are dropping files with less than 1024 points. Is this correct? Worth a check
+                # I (cris) tried to replace the 1024-shape[0] points with zeros, but it slows down a bit
+                # transposed_points = pts.transpose()
+                out.append(pts)
+
         out = np.stack(out, axis=0)
         print(out.shape)
         return out

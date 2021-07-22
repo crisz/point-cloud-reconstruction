@@ -1,1 +1,4 @@
 dataset.tar.gz
+venv
+.DS_Store
+.idea

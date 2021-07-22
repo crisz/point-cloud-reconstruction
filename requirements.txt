@@ -1,5 +1,6 @@
 numpy
 torch
+torch_geometric
 open3d
 tqdm
 pandas

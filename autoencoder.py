@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from feature_extractor import PointNetfeat
 import torch.nn.functional as F
+import config as cfg
 
 
 class Decoder(nn.Module):
@@ -12,9 +13,9 @@ class Decoder(nn.Module):
     def __init__(self, num_points=2048):
         super(Decoder, self).__init__()
         self.num_points = num_points
-        self.fc1 = nn.Linear(100, 128)
-        self.fc2 = nn.Linear(128, 256)
-        self.fc3 = nn.Linear(256, 512)
+        self.fc1 = nn.Linear(cfg.code_size, cfg.code_size)
+        self.fc2 = nn.Linear(cfg.code_size, cfg.code_size)
+        self.fc3 = nn.Linear(cfg.code_size, cfg.code_size)
         self.fc4 = nn.Linear(512, 1024)
         self.fc5 = nn.Linear(1024, self.num_points * 3)
         self.th = nn.Tanh()
@@ -62,9 +63,10 @@ class PointNet_AutoEncoder(nn.Module):
         # Encoder Definition
         self.encoder = torch.nn.Sequential(
             PointNetfeat(global_feat=True, feature_transform=feature_transform),
-            nn.Linear(1024, 256),
+            nn.Linear(1024, int(cfg.code_size*2/3)),
             nn.ReLU(),
-            nn.Linear(256, 100))
+            nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
+        )
 
         # Decoder Definition
         self.decoder = Decoder(num_points=num_points)

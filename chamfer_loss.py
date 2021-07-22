@@ -43,6 +43,5 @@ class PointLoss(nn.Module):
     def __init__(self):
         super(PointLoss, self).__init__()
 
-
     def forward(self, array1, array2):
         return chamfer_distance_numpy(array1, array2)

@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from feature_extractor import PointNetfeat
 import torch.nn.functional as F
-import config as cfg
+from config import config as cfg
 
 
 class Decoder(nn.Module):

@@ -23,12 +23,10 @@ class PointNet_AutoEncoder(nn.Module):
         print("PointNet AE Init - num_points (# generated): %d" % num_points)
 
         # Encoder Definition
-        self.encoder = torch.nn.Sequential(
-            PointNetfeat(global_feat=True, feature_transform=feature_transform), # TODO: concatenate global and point feature
-            nn.Linear(1024, int(cfg.code_size*2/3)),
-            nn.ReLU(),
-            nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
-        )
+        self.encoder = PointNetfeat(global_feat=True, feature_transform=feature_transform)
+        self.fc1 = nn.Linear(1024, int(cfg.code_size*2/3))
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
 
         # Decoder Definition
         self.decoder = Decoder(num_points=num_points)
@@ -40,8 +38,12 @@ class PointNet_AutoEncoder(nn.Module):
         # Refactoring batch for 'PointNetfeat' processing
         x = x.permute(0, 2, 1)  # [BS, N, 3] => [BS, 3, N]
 
-        # Encoding
-        code = self.encoder(x)  # [BS, 3, N] => [BS, 100]
+        # Encoding# [BS, 3, N] => [BS, 100]
+        code, trans_points = self.encoder(x)
+        # print("1", code.shape)
+        code = self.fc2(self.relu(self.fc1(code)))
+        # print("2", code.shape)
+        code = code.view(batch_size, -1)
 
         # Decoding
         decoded = self.decoder(code)  # [BS, 3, num_points]
@@ -49,4 +51,4 @@ class PointNet_AutoEncoder(nn.Module):
         # Reshaping decoded output before returning..
         decoded = decoded.permute(0, 2, 1)  # [BS, 3, num_points] => [BS, num_points, 3]
 
-        return decoded
+        return decoded, trans_points

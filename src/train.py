@@ -1,8 +1,11 @@
+from pathlib import Path
+
 from tqdm import tqdm
 
 import numpy as np
 import torch
 
+from models.Naive_AutoEncoder import Naive_AutoEncoder
 from utils.chamfer_loss import PointLoss
 from utils.load_data import load_data
 from config import config as cfg
@@ -15,13 +18,18 @@ def get_input_tensor():
     data = load_data(category="02958343")
     data = np.delete(data, 3, axis=2)
     # data = data[:1]
-    # data = np.repeat(data, 5, axis=0)
+    # data = np.repeat(data, 10, axis=0)
+
+    np.save(str(Path(".") / "original.npy"), data)
     # data[:, 1:] = (0, 0, 0)
+
     data = torch.from_numpy(data).float()
     return data
 
 
 def train():
+    # model = PointNet_AutoEncoder(feature_transform=True)
+    # model = Naive_AutoEncoder()
     model = PointNetPlusPlus_AutoEncoder()
     model.cuda()
     input_tensor_cpu = get_input_tensor()
@@ -30,27 +38,37 @@ def train():
 
     epochs = 100
     criterion = PointLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     y_pred = None
+    y_preds = []
 
     for i in range(epochs):
         print("Epoch {}".format(i+1))
         err = None
         for batch in tqdm(torch.split(input_tensor, 32)):
-            y_pred = model.forward(batch)
+            optimizer.zero_grad()
+            y_pred, trans_points = model.forward(batch)
+
+            if err is None:
+                y_preds.append(y_pred.detach().cpu().numpy()[0])
+
             err = criterion(y_pred, batch)
             err.backward()
-
-            with torch.no_grad():
-                optimizer.step()
+            optimizer.step()
+            # err.backward()
+            #
+            # with torch.no_grad():
+            #     optimizer.step()
         print("Error is: ", err)
 
+    result = np.stack(y_preds, axis=0)
+    np.save(str(Path(".") / "y0evol.npy"), result)
     print(">> Done! Saving the result on {}".format(str(cfg.y_pred_path)))
 
     with torch.no_grad():
         result = np.empty((0, 1024, 3))
         for batch in tqdm(torch.split(input_tensor, 32)):
-            y_pred = model.forward(batch)
+            y_pred, trans_points = model.forward(batch)
             y_pred_npy = y_pred.detach().cpu().numpy()
             result = np.concatenate([result, y_pred_npy], axis=0)
 

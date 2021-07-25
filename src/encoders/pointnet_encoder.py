@@ -27,6 +27,7 @@ class PointNetfeat(nn.Module):
         trans = self.stn(x)
         x = x.transpose(2, 1)
         x = torch.bmm(x, trans)
+        trans_points = x
         x = x.transpose(2, 1)
         x = F.relu(self.bn1(self.conv1(x)))
 
@@ -51,10 +52,10 @@ class PointNetfeat(nn.Module):
             # 'x' are the global features: embedding vector which can be used for Classification or other tasks on the whole shape
             # Obtained by performing maxpooling on per-point features (see row 35)
             # Shape is: [batch_size, emb_size]
-            return x  # , trans, trans_feat
+            return x, trans_points  # , trans, trans_feat
         else:
             # returning here the features of each point!
             # without maxpooling reduction
             # Shape is: [batch_size, num_points, emb_size]
             x = x.view(-1, 1024, 1).repeat(1, 1, n_pts)
-            return torch.cat([x, pointfeat], 1) # , trans, trans_feat
+            return torch.cat([x, pointfeat], 1), trans_points # , trans, trans_feat

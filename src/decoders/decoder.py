@@ -16,12 +16,18 @@ class Decoder(nn.Module):
         self.fc4 = nn.Linear(512, 1024)
         self.fc5 = nn.Linear(1024, self.num_points * 3)
         self.th = nn.Tanh()
+        self.do1 = nn.Dropout(0.4)
+        self.do2 = nn.Dropout(0.4)
+        self.do3 = nn.Dropout(0.4)
 
     def forward(self, x):
         batchsize = x.size()[0]
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        x = F.relu(self.do1(self.fc1(x)))
+        x = F.relu(self.do2(self.fc2(x)))
+        x = F.relu(self.do3(self.fc3(x)))
+        # x = F.relu(self.fc1(x))
+        # x = F.relu(self.fc2(x))
+        # x = F.relu(self.fc3(x))
         x = F.relu(self.fc4(x))
         x = self.th(self.fc5(x))
         x = x.view(batchsize, 3, self.num_points)

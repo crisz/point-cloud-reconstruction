@@ -17,6 +17,8 @@ def load_data(mode="train", category="all"):
     elif mode == "test":
         file = cfg.test_split_info
 
+    print("Loading file {}".format(str(file)))
+
     if file is None:
         raise RuntimeError("mode = {} not found".format(mode))
 

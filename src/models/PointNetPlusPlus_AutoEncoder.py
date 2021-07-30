@@ -10,7 +10,7 @@ from config import config as cfg
 class PointNetPlusPlus_AutoEncoder(nn.Module):
     def __init__(self, num_points=1024):
         super(PointNetPlusPlus_AutoEncoder, self).__init__()
-        self.sa1 = PointNetSetAbstractionMsg(512, [0.1, 0.2, 0.4], [16, 32, 128], 6,
+        self.sa1 = PointNetSetAbstractionMsg(512, [0.1, 0.2, 0.4], [16, 32, 128], 0,
                                              [[32, 32, 64], [64, 64, 128], [64, 96, 128]])
         self.sa2 = PointNetSetAbstractionMsg(128, [0.2, 0.4, 0.8], [32, 64, 128], 320,
                                              [[64, 64, 128], [128, 128, 256], [128, 128, 256]])

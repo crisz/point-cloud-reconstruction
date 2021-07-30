@@ -8,7 +8,8 @@ import numpy as np
 import os
 
 
-def load_data(mode="train", category="all"):
+def load_data(mode="train", category="all"): # TODO: when category == "all" don't train on all the categories but just the ones asked
+    # You can use the "label_codes" variable to do this job
     file = None
     if mode == "train":
         file = cfg.train_split_info
@@ -22,7 +23,7 @@ def load_data(mode="train", category="all"):
     if file is None:
         raise RuntimeError("mode = {} not found".format(mode))
 
-    label_codes = load_label_codes()
+    label_codes = load_label_codes()  # this is the synsetoffset file parsed, but it's not used
 
     with open(file) as f:
         data = json.load(f)

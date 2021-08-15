@@ -30,6 +30,39 @@ class PointNet_AutoEncoder(nn.Module):
 
         # Decoder Definition
         self.decoder = Decoder(num_points=num_points)
+        # distribution parameters
+        self.fc_mu = nn.Linear(512, cfg.code_size)
+        self.fc_var = nn.Linear(512, cfg.code_size)
+
+
+        # for the gaussian likelihood
+        self.log_scale = nn.Parameter(torch.Tensor([0.0]))
+
+    def gaussian_likelihood(self, x_hat, logscale, x):
+        scale = torch.exp(logscale)
+        mean = x_hat
+        dist = torch.distributions.Normal(mean, scale)
+
+        # measure prob of seeing image under p(x|z)
+        log_pxz = dist.log_prob(x)
+        return log_pxz.sum(dim=(1, 2, 3))
+
+    def kl_divergence(self, z, mu, std):
+        # --------------------------
+        # Monte carlo KL divergence
+        # --------------------------
+        # 1. define the first two probabilities (in this case Normal for both)
+        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
+        q = torch.distributions.Normal(mu, std)
+
+        # 2. get the probabilities from the equation
+        log_qzx = q.log_prob(z)
+        log_pz = p.log_prob(z)
+
+        # kl
+        kl = (log_qzx - log_pz)
+        kl = kl.sum(-1)
+        return kl
 
     def forward(self, x, add_noise=False):
         batch_size, num_points, dim = x.size()
@@ -40,13 +73,34 @@ class PointNet_AutoEncoder(nn.Module):
 
         # Encoding# [BS, 3, N] => [BS, 100]
         code, trans_points = self.encoder(x)
+
         # print("1", code.shape)
         code = self.fc2(self.relu(self.fc1(code)))
         # print("2", code.shape)
         code = code.view(batch_size, -1)
-        if add_noise:
-            noise = torch.rand(code.shape).cuda()
-            code = code + noise
+
+        mu, log_var = self.fc_mu(code), self.fc_var(code)
+
+        std = torch.exp(log_var / 2)
+        q = torch.distributions.Normal(mu, std)
+        z = q.rsample()
+
+        # decoded
+        x_hat = self.decoder(z)
+
+        # reconstruction loss
+        recon_loss = self.gaussian_likelihood(x_hat, self.log_scale, x)
+
+        # kl
+        kl = self.kl_divergence(z, mu, std)
+
+        # elbo
+        elbo = (kl - recon_loss)
+        elbo = elbo.mean()
+
+        # if add_noise:
+        #     noise = torch.rand(code.shape).cuda()
+        #     code = code + noise
 
         # Decoding
         decoded = self.decoder(code)  # [BS, 3, num_points]
@@ -54,4 +108,4 @@ class PointNet_AutoEncoder(nn.Module):
         # Reshaping decoded output before returning..
         decoded = decoded.permute(0, 2, 1)  # [BS, 3, num_points] => [BS, num_points, 3]
 
-        return decoded, trans_points
+        return decoded, trans_points, elbo

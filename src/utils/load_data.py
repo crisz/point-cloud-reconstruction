@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 
-def load_data(mode="train", category="all"): # TODO: when category == "all" don't train on all the categories but just the ones asked
+def load_data(mode="train", category="all", folder=cfg.dataset_base): # TODO: when category == "all" don't train on all the categories but just the ones asked
     # You can use the "label_codes" variable to do this job
     file = None
     if mode == "train":
@@ -23,13 +23,13 @@ def load_data(mode="train", category="all"): # TODO: when category == "all" don'
     if file is None:
         raise RuntimeError("mode = {} not found".format(mode))
 
-    label_codes = load_label_codes()  # this is the synsetoffset file parsed, but it's not used
+    # label_codes = load_label_codes()  # this is the synsetoffset file parsed, but it's not used
 
     with open(file) as f:
         data = json.load(f)
         out = []
         for path in tqdm(data):
-            fixed_path = Path(path.replace('shape_data', str(cfg.dataset_base)))
+            fixed_path = Path(path.replace('shape_data', str(folder)))
             pts = load_pts(fixed_path, 1024, category=category)
             # TODO: the "if" below is useless since, re-reading the document, the sampling has to be done with replacement
             if pts.shape[0] == 1024:  # We are dropping files with less than 1024 points. Is this correct? Worth a check

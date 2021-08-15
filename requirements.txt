@@ -4,3 +4,4 @@ torch_geometric
 open3d
 tqdm
 pandas
+matplotlib

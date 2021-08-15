@@ -7,12 +7,14 @@ class Decoder(nn.Module):
     ''' Just a lightweight Fully Connected decoder:
     '''
 
-    def __init__(self, num_points=2048):
+    def __init__(self, num_points=2048, code_size=None):
         super(Decoder, self).__init__()
         self.num_points = num_points
-        self.fc1 = nn.Linear(cfg.code_size, cfg.code_size)
-        self.fc2 = nn.Linear(cfg.code_size, cfg.code_size)
-        self.fc3 = nn.Linear(cfg.code_size, cfg.code_size)
+        if code_size is None:
+            code_size = cfg.code_size
+        self.fc1 = nn.Linear(code_size, code_size)
+        self.fc2 = nn.Linear(code_size, code_size)
+        self.fc3 = nn.Linear(code_size, 512)
         self.fc4 = nn.Linear(512, 1024)
         self.fc5 = nn.Linear(1024, self.num_points * 3)
         self.th = nn.Tanh()

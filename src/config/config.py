@@ -14,3 +14,5 @@ y_pred_path = Path(".") / "prediction.npy"
 
 # Parameters
 code_size = 512
+
+allowed_categories = ["02691156", "03001627", "04379243", "03636649", "02958343", "03790512", "03797390"]

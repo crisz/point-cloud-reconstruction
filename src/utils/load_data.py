@@ -59,6 +59,8 @@ def load_pts(path, size, category):
 
     current_category = (str(folder).split("/"))[-1]
 
+    if current_category.strip() not in cfg.allowed_categories:  # We only allow categories specified in proj. spec.
+        return np.empty((0, 3))
     if category != "all" and current_category.strip() != category.strip():
         return np.empty((0, 3))
 

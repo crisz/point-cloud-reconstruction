@@ -21,10 +21,10 @@ class GraphCNN_VAE(nn.Module):
         self.fc2 = nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
 
         # Decoder Definition
-        self.decoder = Decoder(num_points=num_points, code_size=28)
+        self.decoder = Decoder(num_points=num_points, code_size=cfg.code_size)
 
-        self.hidden2mu = nn.Linear(28,28)
-        self.hidden2log_var = nn.Linear(28,28)
+        self.hidden2mu = nn.Linear(cfg.code_size, cfg.code_size)
+        self.hidden2log_var = nn.Linear(cfg.code_size, cfg.code_size)
         self.alpha = alpha
 
     @staticmethod
@@ -58,7 +58,6 @@ class GraphCNN_VAE(nn.Module):
             code = code + noise
 
         # Decoding
-        print("Before decoding:", code.shape)
         decoded = self.decoder(code)  # [BS, 3, num_points]
 
         # Reshaping decoded output before returning..

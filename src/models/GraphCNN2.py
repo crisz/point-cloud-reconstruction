@@ -2,14 +2,15 @@ import torch
 from torch import nn
 from config import config as cfg
 from decoders.decoder import Decoder
+from decoders.pfnet_decoder import PFNetDecoder
 from encoders.graph_cnn_encoder import DGCNN
 from encoders.pointnet_encoder import PointNetfeat
 
 
-class GraphCNN(nn.Module):
+class GraphCNN2(nn.Module):
 
     def __init__(self, num_points=1024, feature_transform=False):
-        super(GraphCNN, self).__init__()
+        super(GraphCNN2, self).__init__()
 
         # Encoder Definition
         args = {
@@ -22,7 +23,11 @@ class GraphCNN(nn.Module):
         self.fc2 = nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
 
         # Decoder Definition
-        self.decoder = Decoder(num_points=num_points)
+        self.decoder = PFNetDecoder(
+            num_scales=3,
+            crop_point_num=num_points,
+            each_scales_size=1,
+            point_scales_list=[2048,1024,512])
 
     def forward(self, x, add_noise=False):
         batch_size, num_points, dim = x.size()
@@ -35,11 +40,17 @@ class GraphCNN(nn.Module):
         code, trans_points = self.encoder(x)
         code = self.fc2(self.relu(self.fc1(code)))
         code = code.view(batch_size, -1)
+
+        code_size = code.shape[1]
         if add_noise:
             noise = torch.rand(code.shape).cuda()
             code = code + noise
 
         # Decoding
+        code = torch.cat((code, code, code), 1)
+        code = code.view(batch_size, 3, code_size)
+        print("Before decoding", code.shape)
+
         decoded = self.decoder(code)  # [BS, 3, num_points]
 
         # Reshaping decoded output before returning..

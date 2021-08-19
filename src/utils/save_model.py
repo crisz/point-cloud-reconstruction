@@ -1,5 +1,6 @@
 import torch
 from pathlib import Path
+import os
 
 
 def save_model(name, model, optimizer, epoch):
@@ -13,5 +14,8 @@ def save_model(name, model, optimizer, epoch):
 
 def load_model(name):
     checkpoint_path = Path(".") / name
-    cp = torch.load(checkpoint_path)
-    return cp['model_state_dict'], cp['optimizer_state_dict'], cp['epoch']
+    if checkpoint_path.exists():
+        cp = torch.load(checkpoint_path)
+        return cp['model_state_dict'], cp['optimizer_state_dict'], cp['epoch']
+    else:
+        return None, None, 0

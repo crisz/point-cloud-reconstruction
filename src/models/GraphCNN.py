@@ -17,7 +17,7 @@ class GraphCNN(nn.Module):
             'emb_dims': 1024
         }
         self.encoder = DGCNN(args)
-        self.fc1 = nn.Linear(1024, int(cfg.code_size*2/3))
+        self.fc1 = nn.Linear(1024, int(cfg.code_size*2/3))  # TODO: remove 2/3
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
 

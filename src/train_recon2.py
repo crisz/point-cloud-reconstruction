@@ -73,10 +73,11 @@ def train(radius):
             loss1 = criterion(batch_remaining, missing_part_pred)
             loss2 = criterion(batch, complete_cloud_pred)
             # loss = recon_loss + 10*auto_loss
-            # loss1.backward()
+            # loss1.backward() # TODO: try retain_graph()
             # loss2.backward()
             loss = loss1 + loss2
-            loss.backward()  # TODO: try retain_graph()
+            loss.backward()
+            # refinement
 
             with torch.no_grad():
                 optimizer.step()

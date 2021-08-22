@@ -3,6 +3,7 @@ from torch import nn
 from config import config as cfg
 from decoders.decoder import Decoder
 from encoders.graph_cnn_encoder import DGCNN
+import torch.nn.functional as F
 
 
 class GraphCNN_VAE(nn.Module):
@@ -16,9 +17,9 @@ class GraphCNN_VAE(nn.Module):
             'emb_dims': 1024
         }
         self.encoder = DGCNN(args)
-        self.fc1 = nn.Linear(1024, int(cfg.code_size*2/3))
+        self.fc1 = nn.Linear(1024, cfg.code_size)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(int(cfg.code_size*2/3), cfg.code_size)
+        self.fc2 = nn.Linear(cfg.code_size, cfg.code_size)
 
         # Decoder Definition
         self.decoder = Decoder(num_points=num_points, code_size=cfg.code_size)
@@ -31,10 +32,10 @@ class GraphCNN_VAE(nn.Module):
     def reparametrize(mu, log_var):
         # Reparametrization Trick to allow gradients to backpropagate from the
         # stochastic part of the model
-        sigma = torch.exp(0.5*log_var)
-        z = torch.randn(size=(mu.size(0),mu.size(1)))
+        sigma = torch.exp(0.5 * log_var)
+        z = torch.randn(size=(mu.size(0), mu.size(1)))
         z = z.type_as(mu)  # Setting z to be .cuda when using GPU training
-        return mu + sigma*z
+        return mu + sigma * z
 
     def encode(self, hidden):
         mu = self.hidden2mu(hidden)
@@ -49,7 +50,7 @@ class GraphCNN_VAE(nn.Module):
 
         # Encoding# [BS, 3, N] => [BS, 100]
         code, trans_points = self.encoder(x)
-        code = self.fc2(self.relu(self.fc1(code)))
+        code = F.sigmoid(self.fc2(self.relu(self.fc1(code))))
         code = code.view(batch_size, -1)
         mu, log_var = self.encode(code)
         code = self.reparametrize(mu, log_var)
@@ -63,4 +64,7 @@ class GraphCNN_VAE(nn.Module):
         # Reshaping decoded output before returning..
         decoded = decoded.permute(0, 2, 1)  # [BS, 3, num_points] => [BS, num_points, 3]
 
-        return mu, log_var, decoded
+        kl_loss = self.alpha * (-0.5 * (1 + log_var - mu ** 2 -
+                                        torch.exp(log_var)).sum(dim=1)).mean(dim=0)
+
+        return kl_loss, decoded

@@ -63,6 +63,7 @@ def train(radius):
         print("Epoch {}".format(i+1))
         for batch in tqdm(torch.split(input_tensor, 16)):
             optimizer.zero_grad()
+            # todo: if mode==recon:
             # batch_partially_removed, batch_remaining, radius = remove_random_part(batch, radius)
             y_pred, _ = model.forward(batch, add_noise=False)
 

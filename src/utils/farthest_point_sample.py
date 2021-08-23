@@ -77,6 +77,15 @@ def random_occlude_pointcloud_v2(xyz, centroids=None, n_drop=200, n_c=1):
     return occluded_pointset, missing_part_gt
 
 
+def fps_batch(batch, out_points):
+    batch = batch.cpu().numpy()
+    bs, in_points, n_dim = batch.shape
+    out = np.empty((bs, out_points, n_dim))
+    for i in range(bs):
+        out[i, :, :], _ = farthest_point_sample(batch[i], out_points)
+    return torch.from_numpy(out).to(dtype=torch.float).cuda()
+
+
 def random_occlude_batch(batch, n_drop=200):
     batch = batch.cpu()
     bs, n_points, n_dim = batch.shape

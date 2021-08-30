@@ -4,7 +4,7 @@ import os
 
 
 def save_model(name, model, optimizer, epoch):
-    checkpoint_path = Path(".") / name
+    checkpoint_path = Path("/content/drive/MyDrive/checkpoints/") / name
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),

@@ -7,10 +7,10 @@ from encoders.graph_cnn_encoder import DGCNN
 from encoders.pointnet_encoder import PointNetfeat
 
 
-class GraphCNN2(nn.Module):
+class GraphCNN3(nn.Module):
 
     def __init__(self, resolutions=None, crop_point_num=1024):
-        super(GraphCNN2, self).__init__()
+        super(GraphCNN3, self).__init__()
         if resolutions is None:
             resolutions = [256, 512, 1024]
 
@@ -29,13 +29,15 @@ class GraphCNN2(nn.Module):
         self.encoder2_fc2 = nn.Linear(cfg.code_size, cfg.code_size)
         self.encoder3_fc1 = nn.Linear(embedded, cfg.code_size)
         self.encoder3_fc2 = nn.Linear(cfg.code_size, cfg.code_size)
+        self.resize_fc1 = nn.Linear(3*cfg.code_size, cfg.code_size)
+        self.resize_fc2 = nn.Linear(cfg.code_size, cfg.code_size)
 
         self.relu = nn.ReLU()
 
         # Decoder Definition
         self.decoder = PFNetDecoder(resolutions=resolutions, crop_point_num=crop_point_num)
 
-    def forward(self, x, add_noise=False, multi_resolution=True):
+    def forward(self, x, add_noise=False, multi_resolution=True, use_max=False):
         if not multi_resolution:
             x = [x]
         batch_size, num_points, dim = x[0].size()
@@ -61,8 +63,13 @@ class GraphCNN2(nn.Module):
             code3 = self.encoder3_fc2(self.relu(self.encoder3_fc1(code1)))
             code3 = code3.view(1, batch_size, -1)
 
-            code = torch.cat((code1, code2, code3), dim=0)
-            code = torch.max(code, dim=0).values
+            code = torch.cat((code1, code2, code3), dim=0).view(-1, cfg.code_size*3)
+
+            if use_max:
+                code = torch.max(code, dim=0).values
+            else:
+                code = self.resize_fc2(self.relu(self.resize_fc1(code)))
+
         else:
             code = code1
 

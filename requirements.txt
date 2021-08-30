@@ -5,3 +5,4 @@ open3d
 tqdm
 pandas
 matplotlib
+h5py

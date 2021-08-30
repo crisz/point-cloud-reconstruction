@@ -39,6 +39,7 @@ def train(radius):
     input_tensor_cpu = get_input_tensor(mode="train")
     input_tensor = input_tensor_cpu.cuda()
     val_tensor_cpu = get_input_tensor(mode="val")
+
     val_tensor = val_tensor_cpu.cuda()
     print(input_tensor.shape)
 

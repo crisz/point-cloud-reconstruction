@@ -6,6 +6,28 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import os
+import h5py
+
+
+def load_novel_categories(similar=True):
+    dir = None
+    if similar:
+        dir = cfg.novel_categories_sim
+    else:
+        dir = cfg.novel_categories_dissim
+
+    out = np.empty((0, 1024, 3))
+
+    for file in os.listdir(dir):
+        with h5py.File(dir / file, "r") as f:
+            key = list(f.keys())[0]
+            arr = np.array(f[key])
+            tot, n_points, dim = arr.shape
+            random_indices = np.random.choice(n_points, size=1024, replace=False)
+            arr = arr[:, random_indices, :]
+            out = np.concatenate((out, arr), axis=0)
+
+    return out
 
 
 def load_data(mode="train", category="all", folder=cfg.dataset_base): # TODO: when category == "all" don't train on all the categories but just the ones asked

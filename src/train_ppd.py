@@ -9,10 +9,11 @@ import torch
 
 from models.GraphCNN import GraphCNN
 from models.GraphCNN2 import GraphCNN2
+from models.GraphCNN3 import GraphCNN3
 from models.GraphCNN_VAE import GraphCNN_VAE
 from utils.chamfer_loss import PointLoss
 from utils.farthest_point_sample import farthest_point_sample, fps_batch
-from utils.load_data import load_data
+from utils.load_data import load_data, load_novel_categories
 from config import config as cfg
 from utils.remove_random_part import remove_random_part
 from utils.save_model import save_model, load_model
@@ -34,15 +35,24 @@ def get_input_tensor(mode="train"):
 
 
 def train(radius):
-    model = GraphCNN2()
+    model = GraphCNN3()
     model.cuda()
     input_tensor_cpu = get_input_tensor(mode="train")
     input_tensor = input_tensor_cpu.cuda()
     val_tensor_cpu = get_input_tensor(mode="val")
     val_tensor = val_tensor_cpu.cuda()
+
+    novel_categories_sim = load_novel_categories(similar=True)
+    novel_categories_dissim = load_novel_categories(similar=False)
+
+    val_tensor = torch.from_numpy(novel_categories_sim).float().cuda()
+
+    val_tensor_cpu = get_input_tensor(mode="train")
+    val_tensor = val_tensor_cpu.cuda()
+
     print(input_tensor.shape)
 
-    epochs = 5
+    epochs = 165
     criterion = PointLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
     i = 0
@@ -52,7 +62,6 @@ def train(radius):
         print("Loading model...")
         model_name = sys.argv[2]
         model_state, optimizer_state, epochs_done = load_model(model_name)
-        print("Loaded: ", model_state, optimizer_state, epochs_done)
         if model_state is not None:
             print("Loaded {} epochs".format(epochs_done))
             model.load_state_dict(model_state)
@@ -65,23 +74,25 @@ def train(radius):
         for batch in tqdm(torch.split(input_tensor, 16)):
             optimizer.zero_grad()
             # batch_partially_removed, batch_remaining, radius = remove_random_part(batch, radius)
-            # input = [
-            #     fps_batch(batch, 1024),
-            #     fps_batch(batch, 512),
-            #     fps_batch(batch, 256),
-            # ]
-            # TODO: different resolutions
-            # TODO: add dropout & different layer to decoder
+            input = [
+                fps_batch(batch, 1024),
+                fps_batch(batch, 512),
+                fps_batch(batch, 256),
+            ]
             # Also think about parellelize the encoder on 3 resolutions + torch.max
-            res1, res2, res3 = model.forward(batch, add_noise=False)
-            loss = criterion(batch, res3)
+            res1, res2, res3 = model.forward(input, add_noise=False, multi_resolution=True)
+            loss1 = criterion(input[2], res1)
+            loss2 = criterion(input[1], res2)
+            loss3 = criterion(input[0], res3)
+            loss = (loss1 + loss2 + loss3)/3
+            # loss = criterion(batch, res3)
             # loss = recon_loss + 10*auto_loss
             loss.backward()
 
             with torch.no_grad():
                 optimizer.step()
         print("Recon loss is: ", loss)
-        if i%10 == 0 and len(sys.argv) > 2:
+        if i%40 == 0 and len(sys.argv) > 2:
             model_name = sys.argv[2]+str(i)
             print(">> Saving the model")
             save_model(model_name, model=model, optimizer=optimizer, epoch=i+epochs_done)
@@ -95,7 +106,12 @@ def train(radius):
         result = np.empty((0, 1024, 3))
         for batch in tqdm(torch.split(val_tensor, 16)):
             # batch_partially_removed, batch_remaining, radius = remove_random_part(batch, radius)
-            res1, res2, res3 = model.forward(batch, add_noise=False)
+            input = [
+                fps_batch(batch, 1024),
+                fps_batch(batch, 512),
+                fps_batch(batch, 256),
+            ]
+            res1, res2, res3 = model.forward(input, add_noise=False, multi_resolution=True)
             y_pred_npy = res3.detach().cpu().numpy()
             original = batch.detach().cpu().numpy()
             val_error = criterion(res3, batch)
@@ -117,6 +133,6 @@ def train(radius):
 
 
 if __name__ == '__main__':
-    print("recon v1.4.14")
+    print("recon v1.4.58")
     radius = float(sys.argv[1])
     train(radius)

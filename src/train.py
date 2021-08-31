@@ -3,14 +3,17 @@ from pathlib import Path
 
 from torch import Tensor
 from tqdm import tqdm
+import argparse
 
 import numpy as np
 import torch
 
+from autoencoder import PointNet_AutoEncoder
 from models.GraphCNN import GraphCNN
 from models.GraphCNN2 import GraphCNN2
 from models.GraphCNN3 import GraphCNN3
 from models.GraphCNN_VAE import GraphCNN_VAE
+from models.PointNetPlusPlus_AutoEncoder import PointNetPlusPlus_AutoEncoder
 from utils.chamfer_loss import PointLoss
 from utils.farthest_point_sample import random_occlude_batch
 from utils.load_data import load_data, load_novel_categories
@@ -21,8 +24,12 @@ from utils.save_model import save_model, load_model
 torch.manual_seed(42)
 
 
-def get_input_tensor(mode="train"):
-    data = load_data(mode=mode)
+def get_input_tensor(mode="train", path=None):
+    if path:
+        data = load_data(mode=mode, folder=path)
+    else:
+        data = load_data(mode=mode)
+
     data = np.delete(data, 3, axis=2)
     # data = data[:1]
     # data = np.repeat(data, 10, axis=0)
@@ -34,12 +41,24 @@ def get_input_tensor(mode="train"):
     return data
 
 
-def train(radius):
-    model = GraphCNN3()
+def train(radius, args):
+    model_name = args['model']
+    mode = args['mode']
+    multi_resolution = args['multi-resolution']
+    use_max = args['use-max']
+
+    if model_name == 'pointnet':
+        model = PointNet_AutoEncoder()
+    elif model_name == 'pointnetpp':
+        model = PointNetPlusPlus_AutoEncoder()
+    elif model_name == 'dgcnn':
+        model = GraphCNN()
+    else:
+        model = GraphCNN3()
     model.cuda()
-    input_tensor_cpu = get_input_tensor(mode="train")
+    input_tensor_cpu = get_input_tensor(mode="train", path=args['train-dataset'])
     input_tensor = input_tensor_cpu.cuda()
-    val_tensor_cpu = get_input_tensor(mode="train")
+    val_tensor_cpu = get_input_tensor(mode="val", path=args['eval-dataset'])
     val_tensor = val_tensor_cpu.cuda()
 
     # novel_categories_sim = load_novel_categories(similar=True)
@@ -67,17 +86,16 @@ def train(radius):
             epochs = epochs - epochs_done - 1
 
         print("Loaded model, remaining epochs: ", epochs)
-    mode = "reconstruction"
     for i in range(epochs):
         print("Epoch {}/{}".format(i+epochs_done+1, epochs+epochs_done))
         for batch in tqdm(torch.split(input_tensor, 16)):
             optimizer.zero_grad()
             if mode == "reconstruction":
                 occluded, remaining = random_occlude_batch(batch, 200)
-                _, _, y_pred = model.forward(occluded, add_noise=False, multi_resolution=False, use_max=False)
+                _, _, y_pred = model.forward(occluded, add_noise=False, multi_resolution=multi_resolution, use_max=use_max)
                 loss = criterion(remaining, y_pred)
             else:
-                _, _, y_pred = model.forward(batch, add_noise=False, multi_resolution=False, use_max=False)
+                _, _, y_pred = model.forward(batch, add_noise=False, multi_resolution=multi_resolution, use_max=use_max)
                 loss = criterion(batch, y_pred)
 
             loss.backward()
@@ -128,4 +146,13 @@ def train(radius):
 if __name__ == '__main__':
     print("recon v1.4.43")
     radius = float(sys.argv[1])
-    train(radius)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model')
+    parser.add_argument('--mode')
+    parser.add_argument('--train-dataset')
+    parser.add_argument('--eval-dataset')
+    parser.add_argument('--multi-resolution')
+    parser.add_argument('--use-max')
+    args = parser.parse_args()
+    train(radius, args)

@@ -22,7 +22,7 @@ class PointNetfeat(nn.Module):
           # raise NotImplementedError("Feature Transformer not implemented.")
           self.fstn = STNkd(k=64)
 
-    def forward(self, x):
+    def forward(self, x, multi_resolution=None, use_max=None):
         n_pts = x.size()[2]
         trans = self.stn(x)
         x = x.transpose(2, 1)

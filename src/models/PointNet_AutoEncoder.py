@@ -31,7 +31,7 @@ class PointNet_AutoEncoder(nn.Module):
         # Decoder Definition
         self.decoder = Decoder(num_points=num_points)
 
-    def forward(self, x, add_noise=False):
+    def forward(self, x, add_noise=False, multi_resolution=None, use_max=None):
         batch_size, num_points, dim = x.size()
         assert dim == 3, "Fail: expecting 3 (x-y-z) as last tensor dimension!"
 
